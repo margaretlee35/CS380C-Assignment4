@@ -30,12 +30,12 @@ struct LoopPass : PassInfoMixin<LoopPass> {
 // New PM Registration
 //-----------------------------------------------------------------------------
 llvm::PassPluginLibraryInfo getHelloWorldPluginInfo() {
-  return {LLVM_PLUGIN_API_VERSION, "UTEID-Loop-Opt-Pass", LLVM_VERSION_STRING,
+  return {LLVM_PLUGIN_API_VERSION, "ml55822_mp46753-Loop-Opt-Pass", LLVM_VERSION_STRING,
           [](PassBuilder &PB) {
             PB.registerPipelineParsingCallback(
                 [](StringRef Name, FunctionPassManager &FPM,
                    ArrayRef<PassBuilder::PipelineElement>) {
-                  if (Name == "UTEID-loop-opt-pass") {
+                  if (Name == "ml55822_mp46753-loop-opt-pass") {
 		    FPM.addPass(LoopSimplifyPass());
                     FPM.addPass(LoopPass());
                     return true;
