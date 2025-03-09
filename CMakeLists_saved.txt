@@ -1,0 +1,35 @@
+cmake_minimum_required(VERSION 3.10)
+project(CS380CLAB LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+find_package(LLVM REQUIRED CONFIG PATHS "/usr/local/opt/llvm@19/lib/cmake/llvm")
+set(LLVM_DIR "/usr/local/opt/llvm@19/lib/cmake/llvm")
+
+# Print LLVM details
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "LLVM Include Directory: ${LLVM_INCLUDE_DIRS}")
+message(STATUS "LLVM Library Directory: ${LLVM_LIBRARY_DIRS}")
+
+include_directories(${LLVM_INCLUDE_DIRS})
+link_directories(${LLVM_LIBRARY_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
+
+add_library(loop-analysis-pass SHARED
+  ./ml55822_mp46753-loop-analysis-pass.cpp
+)
+
+add_library(loop-opt-pass SHARED
+  ./ml55822_mp46753-loop-opt-pass.cpp
+)
+
+target_link_libraries(loop-analysis-pass LLVM)
+target_link_libraries(loop-opt-pass LLVM)
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  message(STATUS "macOS detected, adding dylib fix.")
+  target_link_options(loop-analysis-pass PRIVATE -undefined dynamic_lookup)
+  target_link_options(loop-opt-pass PRIVATE -undefined dynamic_lookup)
+endif()
+
