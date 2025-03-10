@@ -15,8 +15,8 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   link_directories(/usr/local/opt/llvm/lib)
 else()
   message("Linux Compile. looking for LLVM headers in /usr/lib/llvm-19")
-  include_directories(  )
-  link_directories(/usr/lib/llvm-19/lib)  
+  include_directories(/usr/include/llvm-19 /usr/include/llvm-c-19)
+  link_directories(/usr/lib/llvm-19)  
 endif()
 
 
@@ -24,7 +24,8 @@ endif()
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-fvisibility-inlines-hidden" SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG)
 if (${SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG} EQUAL "1")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fno-omit-frame-pointer")
 endif()
 
 add_library(loop-analysis-pass SHARED

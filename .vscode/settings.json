@@ -4,6 +4,8 @@
         "iosfwd": "cpp",
         "regex": "cpp",
         "sstream": "cpp",
-        "strstream": "cpp"
+        "strstream": "cpp",
+        "algorithm": "cpp",
+        "cmath": "cpp"
     }
 }
