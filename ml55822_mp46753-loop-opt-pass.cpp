@@ -37,19 +37,35 @@ struct LoopPass : PassInfoMixin<LoopPass> {
   }
 
  
-  static bool isLoopInvariant(Instruction& I) {
+  static bool isLoopInvariant(Instruction& I, Loop* L) {
     //1. It is one of the following LLVM instructions or instruction classes:
     //binary operator, shift, select, cast, getelementptr.
+    if (!isa<BinaryOperator>(&I) && !isa<ShiftInst>(&I) && !isa<SelectInst>(&I) && !isa<CastInst>(&I) && !isa<GetElementPtrInst>(&I) ) {
+      return false;
+    }
+        
     //2. Every operand of the instruction is either (a) constant or (b) computed outside the loop.
-    return false;
+    for (Use &Op : I.operands()) {
+      if (!isa<Constant>(Op) && !L->isLoopInvariant(Op)) {
+        return false;
+      }
+    }
+    return true;
   }
 
-  static bool safeToHoist(Instruction& I) {
+  static bool safeToHoist(Instruction& I, DominatorTree& DT, Loop* L) {
     //1. It has no side effects (exceptions/traps). You can use isSafeToSpeculativelyExecute()
     //(you can find it in llvm/Analysis/ValueTracking.h).
+    if (isSafeToSpeculativelyExecute(&I))
+      return true;
+
     //2. The basic block containing the instruction dominates all exit blocks for the loop. The exit
     //blocks are the targets of exits from the loop, i.e., they are outside the loop.
-    return false;
+    for (BasicBlock *BB : L->getExitBlocks()) {
+      if (!DT.dominates(I.getParent(), BB))
+        return false;
+    }
+    return true;
   }
 
   //do Loop Invariant Computation Motion
