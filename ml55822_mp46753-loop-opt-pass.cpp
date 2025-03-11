@@ -27,13 +27,45 @@ struct LoopPass : PassInfoMixin<LoopPass> {
 
     // Dominator Tree Testing
     auto& DT = FAM.getResult<DominatorTreeAnalysis>(F);
-    DT.print(errs());
+    //DT.print(errs());
 
     for (Loop *L : LI) {
-      //doLICM(L, &LI, F.getName().str());
+      doLICM(L, &DT);
     }
 
     return PreservedAnalyses::all();
+  }
+
+ 
+  static bool isLoopInvariant(Instruction& I) {
+    return false;
+  }
+
+  static bool safeToHoist(Instruction& I) {
+    return false;
+  }
+
+  //do Loop Invariant Computation Motion
+  void doLICM(Loop *L, DominatorTree* DT) {
+    for (BasicBlock *BB : L->blocks()) { // for each basic block BB
+      // if BB not dominated by loop header in preorder on dominator tree, continue
+      BasicBlock *LoopHeader = L->getHeader();
+      if (!LoopHeader) {
+        errs() << "LoopHeader not found\n";
+      }
+      if (!DT->dominates(BB, LoopHeader)){
+        errs() << "BB not dominates LoopHeader\n";
+      }
+      
+
+      // if (BB is immediately within L) // not an inner loop or outside L
+      for (Instruction &I : *BB) {
+        if (isLoopInvariant(I) && safeToHoist(I)) {
+          //move I to pre-header basic block;
+        }
+      }
+
+    }
   }
 
   void analyzeLoop(Loop *L, LoopInfo *LI, std::string FuncName) {
@@ -66,28 +98,6 @@ struct LoopPass : PassInfoMixin<LoopPass> {
            << ", instrs=" << InstrCount
            << ", atomics=" << AtomicCount
            << ", branches=" << BranchCount << "\n";
-  }
-
-  static bool isLoopInvariant(Instruction I) {
-    return false;
-  }
-
-  static bool safeToHoist(Instruction I) {
-    return false;
-  }
-
-  //do Loop Invariant Computation Motion
-  void doLICM(Loop *L) {
-    for (BasicBlock *BB : L->blocks()) { // for each basic block BB
-      // if BB not dominated by loop header in preorder on dominator tree, continue
-      // if (BB is immediately within L) // not an inner loop or outside L
-      for (Instruction &I : *BB) {
-        //if (isLoopInvariant(I) && safeToHoist(I)) {
-          //move I to pre-header basic block;
-        //}
-      }
-
-    }
   }
 
   // Without isRequired returning true, this pass will be skipped for functions
