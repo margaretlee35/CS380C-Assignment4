@@ -38,25 +38,33 @@ struct LoopPass : PassInfoMixin<LoopPass> {
 
  
   static bool isLoopInvariant(Instruction& I) {
+    //1. It is one of the following LLVM instructions or instruction classes:
+    //binary operator, shift, select, cast, getelementptr.
+    //2. Every operand of the instruction is either (a) constant or (b) computed outside the loop.
     return false;
   }
 
   static bool safeToHoist(Instruction& I) {
+    //1. It has no side effects (exceptions/traps). You can use isSafeToSpeculativelyExecute()
+    //(you can find it in llvm/Analysis/ValueTracking.h).
+    //2. The basic block containing the instruction dominates all exit blocks for the loop. The exit
+    //blocks are the targets of exits from the loop, i.e., they are outside the loop.
     return false;
   }
 
   //do Loop Invariant Computation Motion
   void doLICM(Loop *L, DominatorTree* DT) {
     for (BasicBlock *BB : L->blocks()) { // for each basic block BB
-      // if BB not dominated by loop header in preorder on dominator tree, continue
       BasicBlock *LoopHeader = L->getHeader();
       if (!LoopHeader) {
         errs() << "LoopHeader not found\n";
       }
+
+      // if BB not dominated by loop header in preorder on dominator tree, continue
+      // not sure if it is preorder; do I have to traverse the tree?
       if (!DT->dominates(BB, LoopHeader)){
-        errs() << "BB not dominates LoopHeader\n";
+        continue;
       }
-      
 
       // if (BB is immediately within L) // not an inner loop or outside L
       for (Instruction &I : *BB) {
