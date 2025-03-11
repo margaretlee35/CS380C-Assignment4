@@ -30,7 +30,7 @@ struct LoopPass : PassInfoMixin<LoopPass> {
     //DT.print(errs());
 
     for (Loop *L : LI) {
-      doLICM(L, &DT);
+      doLICM(L, &LI, &DT);
     }
 
     return PreservedAnalyses::all();
@@ -53,7 +53,7 @@ struct LoopPass : PassInfoMixin<LoopPass> {
   }
 
   //do Loop Invariant Computation Motion
-  void doLICM(Loop *L, DominatorTree* DT) {
+  void doLICM(Loop *L, LoopInfo *LI, DominatorTree* DT) {
     for (BasicBlock *BB : L->blocks()) { // for each basic block BB
       BasicBlock *LoopHeader = L->getHeader();
       if (!LoopHeader) {
@@ -66,10 +66,16 @@ struct LoopPass : PassInfoMixin<LoopPass> {
         continue;
       }
 
-      // if (BB is immediately within L) // not an inner loop or outside L
+      // proceed only if BB is immediately within L (not an inner loop in this case)
+      Loop* ParentLoop = LI->getLoopFor(BB);
+      if (ParentLoop != L) {
+        continue;
+      }
+
       for (Instruction &I : *BB) {
         if (isLoopInvariant(I) && safeToHoist(I)) {
           //move I to pre-header basic block;
+          I.moveBefore(LoopHeader->getTerminator());
         }
       }
 
