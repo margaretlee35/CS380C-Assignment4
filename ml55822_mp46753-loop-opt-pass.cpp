@@ -3,6 +3,7 @@
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Analysis/ValueTracking.h"
 
 #include "llvm/IR/Dominators.h"
 #include "llvm/Transforms/Scalar/Reassociate.h"
@@ -39,8 +40,9 @@ struct LoopPass : PassInfoMixin<LoopPass> {
  
   static bool isLoopInvariant(Instruction& I, Loop* L) {
     //1. It is one of the following LLVM instructions or instruction classes:
-    //binary operator, shift, select, cast, getelementptr.
-    if (!isa<BinaryOperator>(&I) && !isa<ShiftInst>(&I) && !isa<SelectInst>(&I) && !isa<CastInst>(&I) && !isa<GetElementPtrInst>(&I) ) {
+    //binary operator, shift, select, cast, getelementptr. See "Instruction.def"
+    //if (!isa<BinaryOperator>(&I) && !isa<ShiftInst>(&I) && !isa<SelectInst>(&I) && !isa<CastInst>(&I) && !isa<GetElementPtrInst>(&I) ) {
+    if (!(I.isBinaryOp()) && !(I.isShift()) && !(I.getOpcode()==Instruction::Select) && !(I.isCast()) && !(I.getOpcode()==Instruction::GetElementPtr)) {
       return false;
     }
         
@@ -56,20 +58,47 @@ struct LoopPass : PassInfoMixin<LoopPass> {
   static bool safeToHoist(Instruction& I, DominatorTree& DT, Loop* L) {
     //1. It has no side effects (exceptions/traps). You can use isSafeToSpeculativelyExecute()
     //(you can find it in llvm/Analysis/ValueTracking.h).
-    if (isSafeToSpeculativelyExecute(&I))
+    if (isSafeToSpeculativelyExecute(&I,nullptr,nullptr,&DT,nullptr,true))
       return true;
 
     //2. The basic block containing the instruction dominates all exit blocks for the loop. The exit
     //blocks are the targets of exits from the loop, i.e., they are outside the loop.
-    for (BasicBlock *BB : L->getExitBlocks()) {
+    SmallVector<BasicBlock *, 32> ExitBlocks;
+    L->getExitBlocks(ExitBlocks);
+
+    for (BasicBlock *BB : ExitBlocks) {
       if (!DT.dominates(I.getParent(), BB))
         return false;
     }
+    
     return true;
   }
 
+  /*
+  
+  */
   //do Loop Invariant Computation Motion
   void doLICM(Loop *L, LoopInfo *LI, DominatorTree* DT) {
+    //Each Loop object also gives you a preheader block for the loop
+    BasicBlock *Preheader = L->getLoopPreheader();
+    if (!Preheader) return;
+
+    //for (each basic block BB dominated by loop header, in preordron dominator tree)
+    for (BasicBlock *BB : L->blocks()) {
+      if (L->getLoopDepth() != LI->getLoopDepth(BB)) continue;  // BB is immediately within L
+      
+      //for each instruction I in BB
+      for (auto It = BB->begin(), End = BB->end(); It != End;) {
+        Instruction &I = *It++;
+        //if (isLoopInvariant(I) && safeToHoist(I)
+        if (isLoopInvariant(I, L) && safeToHoist(I, *DT, L)) {
+          //move I to pre-header basic block
+          I.moveBefore(Preheader->getTerminator());
+        }
+      }
+    }
+
+    /*
     for (BasicBlock *BB : L->blocks()) { // for each basic block BB
       BasicBlock *LoopHeader = L->getHeader();
       if (!LoopHeader) {
@@ -96,6 +125,7 @@ struct LoopPass : PassInfoMixin<LoopPass> {
       }
 
     }
+    */
   }
 
   void analyzeLoop(Loop *L, LoopInfo *LI, std::string FuncName) {
