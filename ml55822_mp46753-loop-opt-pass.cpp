@@ -22,10 +22,6 @@ struct LoopPass : PassInfoMixin<LoopPass> {
     // get the loop information analysis passes
     auto& LI = FAM.getResult<LoopAnalysis>(F);
 
-    for (Loop *L : LI) {
-      analyzeLoop(L, &LI, F.getName().str());
-    }
-
     // Dominator Tree Testing
     auto& DT = FAM.getResult<DominatorTreeAnalysis>(F);
     //DT.print(errs());
@@ -33,6 +29,8 @@ struct LoopPass : PassInfoMixin<LoopPass> {
     for (Loop *L : LI) {
       doLICM(L, &LI, &DT);
     }
+
+    F.print(errs(), nullptr);
 
     return PreservedAnalyses::all();
   }
@@ -45,7 +43,8 @@ struct LoopPass : PassInfoMixin<LoopPass> {
     if (!(I.isBinaryOp()) && !(I.isShift()) && !(I.getOpcode()==Instruction::Select) && !(I.isCast()) && !(I.getOpcode()==Instruction::GetElementPtr)) {
       return false;
     }
-        
+    
+    errs() << "isLoopInvariant cond1 pass: " << I << "\n";
     //2. Every operand of the instruction is either (a) constant or (b) computed outside the loop.
     for (Use &Op : I.operands()) {
       if (!isa<Constant>(Op) && !L->isLoopInvariant(Op)) {
@@ -91,9 +90,14 @@ struct LoopPass : PassInfoMixin<LoopPass> {
       for (auto It = BB->begin(), End = BB->end(); It != End;) {
         Instruction &I = *It++;
         //if (isLoopInvariant(I) && safeToHoist(I)
-        if (isLoopInvariant(I, L) && safeToHoist(I, *DT, L)) {
-          //move I to pre-header basic block
-          I.moveBefore(Preheader->getTerminator());
+        errs() << "Candidate Instruction: " << I << "\n";
+        if (isLoopInvariant(I, L)) {
+          errs() << "Loop Invariant Instruction: " << I << "\n";
+          if (safeToHoist(I, *DT, L)){
+            //move I to pre-header basic block
+            errs() << "Hoisted Instruction: " << I << "\n";
+            I.moveBefore(Preheader->getTerminator());
+          }
         }
       }
     }

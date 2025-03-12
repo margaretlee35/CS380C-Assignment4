@@ -11,5 +11,15 @@ clang++ -g -S -emit-llvm ml55822_mp46753-loop-opt-pass.cpp $(llvm-config --cxxfl
 
 mv *.ll ll/
 
-opt -load-pass-plugin ./build/libloop-analysis-pass.so -passes="ml55822_mp46753-loop-analysis-pass" <ll/ml55822_mp46753-loop-analysis-pass.ll >/dev/null 2> log/analysis_output.log
-opt -load-pass-plugin ./build/libloop-opt-pass.so -passes="ml55822_mp46753-loop-opt-pass" <ll/ml55822_mp46753-loop-opt-pass.ll >/dev/null 2> log/opt_output.log
+cd test
+clang++ -g -S -emit-llvm *.cpp $(llvm-config --cxxflags)
+mv *.ll ./ll/
+cd ../
+
+TEST_DIR=test/ll
+INPUT=test1.ll
+#TEST_DIR=ll
+#INPUT=ml55822_mp46753-loop-analysis-pass.ll
+
+opt -load-pass-plugin ./build/libloop-analysis-pass.so -passes="ml55822_mp46753-loop-analysis-pass" <"$TEST_DIR/$INPUT" >/dev/null 2> log/analysis_output.log
+opt -load-pass-plugin ./build/libloop-opt-pass.so -passes="ml55822_mp46753-loop-opt-pass" <"$TEST_DIR/$INPUT" >/dev/null 2> log/opt_output.log
