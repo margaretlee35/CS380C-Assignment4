@@ -18,13 +18,11 @@ struct LoopPass : PassInfoMixin<LoopPass> {
   // Main entry point, takes IR unit to run the pass on (&F) and the
   // corresponding pass manager (to be queried if need be)
   PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM) {
-    // errs() << "hey ;)\n";
     // get the loop information analysis passes
     auto& LI = FAM.getResult<LoopAnalysis>(F);
 
     // Dominator Tree Testing
     auto& DT = FAM.getResult<DominatorTreeAnalysis>(F);
-    //DT.print(errs());
 
     for (Loop *L : LI) {
       doLICM(L, &LI, &DT);
@@ -37,15 +35,12 @@ struct LoopPass : PassInfoMixin<LoopPass> {
   static bool isLoopInvariant(Instruction& I, Loop* L) {
     //1. It is one of the following LLVM instructions or instruction classes:
     //binary operator, shift, select, cast, getelementptr. See "Instruction.def"
-    //if (!isa<BinaryOperator>(&I) && !isa<ShiftInst>(&I) && !isa<SelectInst>(&I) && !isa<CastInst>(&I) && !isa<GetElementPtrInst>(&I) ) {
     if (!(I.isBinaryOp()) && !(I.isShift()) && !(I.getOpcode()==Instruction::Select) && !(I.isCast()) && !(I.getOpcode()==Instruction::GetElementPtr)) {
       return false;
     }
     
     //2. Every operand of the instruction is either (a) constant or (b) computed outside the loop.
     for (Use &Op : I.operands()) {
-      //bool isInstruction = Op->getValueID() >= llvm::Value::InstructionVal;
-      //if (isInstruction) continue;
       if (!isa<Constant>(Op) && !L->isLoopInvariant(Op)) {
         return false;
       }
@@ -88,13 +83,9 @@ struct LoopPass : PassInfoMixin<LoopPass> {
       //for each instruction I in BB
       for (auto It = BB->begin(), End = BB->end(); It != End;) {
         Instruction &I = *It++;
-        //if (isLoopInvariant(I) && safeToHoist(I)
-        //errs() << "Candidate Instruction: " << I << "\n";
         if (isLoopInvariant(I, L)) {
-          //errs() << "Loop Invariant Instruction: " << I << "\n";
           if (safeToHoist(I, *DT, L)){
             //move I to pre-header basic block
-            //errs() << "Hoisted Instruction: " << I << "\n";
             I.moveBefore(Preheader->getTerminator());
           }
         }
@@ -181,7 +172,7 @@ llvm::PassPluginLibraryInfo getHelloWorldPluginInfo() {
                 [](StringRef Name, FunctionPassManager &FPM,
                    ArrayRef<PassBuilder::PipelineElement>) {
                   if (Name == "ml55822_mp46753-loop-opt-pass") {
-		                FPM.addPass(ReassociatePass());
+		                //FPM.addPass(ReassociatePass());
                     FPM.addPass(LoopSimplifyPass());
                     FPM.addPass(LoopPass());
                     return true;
