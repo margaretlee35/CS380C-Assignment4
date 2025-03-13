@@ -3,10 +3,11 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
+#TEST_DIR=test/private/ll
 TEST_DIR=test/llvm-stress
 INPUT=$1
+#OUTPUT=my_opt_$INPUT
 OUTPUT=optimized_$INPUT
-echo "INPUT: " $1
 
 rm -rf build
 mkdir build
@@ -31,4 +32,4 @@ mv *.ll ll/
 
 opt -load-pass-plugin ./build/libloop-analysis-pass.so -passes="ml55822_mp46753-loop-analysis-pass" <"$TEST_DIR/$INPUT" >/dev/null 2> log/analysis_output.log
 #opt -load-pass-plugin ./build/libloop-opt-pass.so -passes="ml55822_mp46753-loop-opt-pass" -S -o $TEST_DIR/$OUTPUT <"$TEST_DIR/$INPUT" >/dev/null 2> log/opt_output.log
-opt -load-pass-plugin ./build/libloop-opt-pass.so -passes="ml55822_mp46753-loop-opt-pass" $TEST_DIR/$INPUT -S -o $TEST_DIR/$OUTPUT >/dev/null 2> log/opt_output.log
+opt -load-pass-plugin ./build/libloop-opt-pass.so -passes="ml55822_mp46753-loop-opt-pass" $TEST_DIR/$INPUT -S -o $TEST_DIR/$OUTPUT >/dev/null 2> log/$INPUT.log

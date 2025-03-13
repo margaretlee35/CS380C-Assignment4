@@ -3,7 +3,7 @@ import os
 import random
 
 OUTPUT_DIR = "./test/llvm-stress/"
-NUM_TEST = 10
+NUM_TEST = 500
 
 def generate_testcases(n):
     for i in range(n):
