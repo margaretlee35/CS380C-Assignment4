@@ -14,6 +14,9 @@ lib/IR/Dominators.cpp
 lib/SandboxIR/Instruction.cpp
 Lecture Slide: Dominators, control-dependence and SSA form
 
-Test Cases
+Test Cases:
 llvm-stress (500+ different cases)
 Test case on Piazza
+
+Status:
+complete
